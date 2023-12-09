@@ -10,6 +10,7 @@ dotenv.config()
 const app = express()
 
 const messages: Bid[] = []
+let highestBid = 0;
 
 export const server = createServer(app)
 const io = new Server(server, {
@@ -27,13 +28,19 @@ io.on('connection', (socket) => {
   socket.emit('previousMessages', messages)
 
   socket.on('sendNewMessage', (messageObj: Bid) => {
-    console.log(messageObj)
-    messages.push(messageObj)
-    socket.broadcast.emit('messageReceived', messageObj)
+    if (messageObj.value > highestBid) {
+      highestBid = messageObj.value;
+      console.log(messageObj);
+      messages.push(messageObj);
+      socket.broadcast.emit('messageReceived', messageObj);
+    } else {
+      console.log('Bid is not higher than the current highest bid');
+    }
   })
 
   socket.on('auctionStarted', (messageObj: Auction) => {
     console.log(messageObj)
+    highestBid = 0; // Reset highest bid for new auction
     socket.broadcast.emit('newAuction', messageObj)
 
     /**
@@ -54,6 +61,6 @@ io.on('connection', (socket) => {
 
       socket.broadcast.emit('messageReceived', bid)
       console.log('Bid sent')
-    }, 5000)
+    }, 1000)
   })
 })
